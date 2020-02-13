@@ -13,11 +13,13 @@ const {
     validationResult
 } = require('express-validator')
 const {
-    login
+    login,
+    findUser
 } = require('../services/user')
 
 const {
-    md5
+    md5,
+    decode
 } = require('../utils/index')
 const {
     PWD_SALT
@@ -62,9 +64,27 @@ router.post('/login', [
 })
 
 router.get('/info', function (req, res, next) {
-    res.json({
-        msg: "成功"
-    })
+    //对token解析
+    let token = req.get('authorization')
+    if (token.indexOf('Bearer') === 0) {
+        token = token.replace('Bearer ', '')
+    }
+    let decode = jwt.verify(token, PRIVATE_KEY)
+    console.log(decode);
+
+    if (decode && decode.username) {
+        findUser('admin').then(user => {
+            if (user) {
+                user.roles = [user.role]
+                new Result(user, '用户信息查询成功').success(res)
+            } else {
+                new Result('用户信息查询失败').fail(res)
+            }
+        })
+    } else {
+        new Result('用户信息查询失败').fail(res)
+    }
+
 })
 
 module.exports = router
