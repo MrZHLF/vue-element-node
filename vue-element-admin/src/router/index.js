@@ -93,24 +93,38 @@ export const asyncRoutes = [{
       roles: ['admin']
     },
     children: [{
-      path: '/book/create',
-      name: "bookCreate",
-      component: () => import('@/views/book/create'),
-      meta: {
-        title: "上传图书",
-        icon: "edit",
-        roles: ['admin']
+        path: '/book/create',
+        name: "bookCreate",
+        component: () => import('@/views/book/create'),
+        meta: {
+          title: "上传图书",
+          icon: "edit",
+          roles: ['admin']
+        }
+      },
+      {
+        path: '/book/edit',
+        name: "bookEdit",
+        hidden: true,
+        component: () => import('@/views/book/edit'),
+        meta: {
+          title: "编辑图书",
+          icon: "edit",
+          roles: ['admin'],
+          activeMenu: '/book/list'
+        }
+      },
+      {
+        path: '/book/list',
+        name: "bookList",
+        component: () => import('@/views/book/create'),
+        meta: {
+          title: "图书列表",
+          icon: "list",
+          roles: ['editor']
+        }
       }
-    }, {
-      path: '/book/list',
-      name: "bookList",
-      component: () => import('@/views/book/create'),
-      meta: {
-        title: "图书列表",
-        icon: "edit",
-        roles: ['editor']
-      }
-    }]
+    ]
   },
   {
     path: '*',

@@ -1,13 +1,12 @@
 <template>
   <div id="book">
-    <Detail :isEdit="false"></Detail>
+    <Detail isEdit></Detail>
   </div>
 </template>
-
 <script>
 import Detail from './components/Detail'
 export default {
-  name: "Book",
+  name: "Edit",
   components: {
     Detail
   }

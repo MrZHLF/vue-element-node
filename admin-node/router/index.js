@@ -3,7 +3,7 @@ const boom = require('boom')
 const jwtAuth = require('./jwt')
 const userRouter = require('./user')
 const Result = require('./../models/Result')
-//   const bookRouter = require('./book')
+const bookRouter = require('./book')
 
 // 注册路由
 const router = express.Router()
@@ -16,7 +16,7 @@ router.get('/', function (req, res) {
 })
 
 router.use('/user', userRouter)
-//   router.use('/book', bookRouter)
+router.use('/book', bookRouter)
 
 /**
  * 集中处理404请求的中间件
