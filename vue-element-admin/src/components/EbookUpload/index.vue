@@ -56,7 +56,22 @@ export default {
       console.log(file);
       this.$emit('beforeUpload', file)
     },
-    onSuccess () {
+    onSuccess (response, file) {
+      console.log(response, file);
+      const { code, msg } = response;
+      if (code) {
+        this.$message({
+          message: msg,
+          type: 'success'
+        })
+        this.$emit('onSuccess', file)
+      } else {
+        this.$message({
+          message: (msg && `上传失败,失败原因是:${msg}`) || '上传失败',
+          type: 'error'
+        })
+      }
+      this.$emit('onError', file)
 
     },
     onError (err) {
@@ -67,7 +82,14 @@ export default {
       })
       this.$emit('onError', err)
     },
-    onRemove () { },
+    onRemove () {
+      // 删除
+      this.$message({
+        message: '电子书删除成功',
+        type: 'success'
+      })
+      this.$emit('onRemove')
+    },
     onExcedd () {
       this.$message({
         message: '每次只能上传一本书',
