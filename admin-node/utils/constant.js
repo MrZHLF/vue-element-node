@@ -4,7 +4,7 @@ const {
 // D:\epub\admin-upload-ebook   /User/sam/upload/admin-upload-ebook
 // const UPLOAD_PATH = env === 'dev' ? '/upload/admin-upload-ebook' : 'root/upload/admin-upload/ebook'; //上传保存书的目录文件
 const UPLOAD_PATH = '/upload/admin-upload-ebook'
-const UPLOAD_URL = 'http://localhost:8089/admin-upload-ebook/book'
+const UPLOAD_URL = 'http://localhost:8089/admin-upload-ebook'
 module.exports = {
     CODE_ERROR: -1,
     CODE_SUCCESS: 0,

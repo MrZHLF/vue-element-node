@@ -19,16 +19,14 @@ router.post(
             new Result(null, '上传电子书失败').fail(res)
         } else {
             const book = new Book(req.file)
-            console.log(book)
+
             book
                 .parse()
                 .then(book => {
-                    console.log('book', book);
-
-                    new Result(null, '上传电子书成功').fail(res)
+                    console.log(book, 'book')
+                    new Result(book, '上传电子书成功').fail(res)
                 })
                 .catch(err => {
-                    console.log('upload', err)
                     next(boom.badImplementation(err))
                 })
         }

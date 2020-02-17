@@ -6,6 +6,8 @@ const {
 const fs = require('fs')
 
 const Epub = require('../utils/epub')
+const xml2js = require('xml2js').parseString
+const path = require('path')
 class Book {
     constructor(file, data) {
         if (file) {
@@ -44,7 +46,7 @@ class Book {
 
         this.filename = filename //文件名
         this.path = `/book/${filename}${suffix}` //epub相对路径
-        this.filPath = this.path //文件路径
+        this.filePath = this.path //文件路径
         this.unzipPath = `/unzip/${filename}` //epub解压后的相对路径
         this.url = url //下载链接
         this.title = '' //电子书标题
@@ -63,7 +65,7 @@ class Book {
 
     parse() {
         return new Promise((resolve, reject) => {
-            const bookPath = `${UPLOAD_PATH}${this.filPath}`
+            const bookPath = `${UPLOAD_PATH}${this.filePath}`
             if (!fs.existsSync(bookPath)) {
                 reject(new Error('电子书不存在'))
             }
@@ -90,8 +92,6 @@ class Book {
                         this.language = language || 'en'
                         this.author = creator || creatorFileAs || 'unkown'
                         this.publisher = publisher || 'unkown'
-                        this.rootFile = epub.rootFile
-
                         const handleGetImage = (err, file, mineType) => {
                             if (err) {
                                 reject(err)
@@ -101,18 +101,154 @@ class Book {
                                 const coverUrl = `${UPLOAD_URL}/img/${this.filename}.${suffix}`
 
                                 fs.writeFileSync(coverPath, file, 'binary')
-                                this.covePath = `/img/￥{this.filename}.${suffix}`
+                                this.coverPath = `/img/${this.filename}.${suffix}`
                                 this.cover = coverUrl
                                 resolve(this)
                             }
                         }
-                        epub.getImage(cover, handleGetImage)
+                        try {
+                            this.unzip()
+                            this.parseContents(epub).then(({
+                                chapters,
+                                chapterTree
+                            }) => {
+                                this.contents = chapters
+                                this.contentsTree = chapterTree
+                                epub.getImage(cover, handleGetImage)
+                            })
+
+
+                        } catch (e) {
+                            reject(e)
+                        }
+
+                        this.rootFile = epub.rootFile
+
+
 
                     }
                 }
             })
             epub.parse()
         })
+    }
+    unzip() {
+        const AdmZIP = require('adm-zip')
+        const zip = new AdmZIP(Book.genPath(this.path))
+        zip.extractAllTo(Book.genPath(this.unzipPath), true)
+    }
+
+    parseContents(epub) {
+        // 解析目录
+        function getNcxFilePath() {
+            const spine = epub && epub.spine
+            const manifest = epub && epub.manifest
+            const ncx = spine.toc && spine.toc.href
+            const id = spine.toc && spine.toc.id
+
+            if (ncx) {
+                return ncx
+            } else {
+                return manifest[id].href
+            }
+        }
+
+        function findParent(array, level = 0, pid = '') {
+            // 多级目录
+            return array.map(item => {
+                item.level = level
+                item.pid = pid
+                if (item.navPoint && item.navPoint.length > 0) {
+                    item.navPoint = findParent(item.navPoint, level + 1, item['$'].id)
+                } else if (item.navPoint) {
+                    item.navPoint.level = level + 1
+                    item.navPoint.pid = item['$'].id
+                }
+                return item
+            })
+        }
+
+        function flatten(array) {
+            return [].concat(...array.map(item => {
+                if (item.navPoint && item.navPoint.length > 0) {
+                    return [].concat(item, ...flatten(item.navPoint))
+                } else if (item.navPoint) {
+                    return [].concat(item, item.navPoint)
+                }
+                return item
+            }))
+        }
+
+
+        const ncxFilePath = Book.genPath(`${this.unzipPath}/${getNcxFilePath()}`)
+        if (fs.existsSync(ncxFilePath)) {
+            return new Promise((resolve, reject) => {
+                const xml = fs.readFileSync(ncxFilePath, 'utf-8')
+                const dir = path.dirname(ncxFilePath).replace(UPLOAD_PATH, '')
+                const filename = this.filename
+                xml2js(xml, {
+                    explicitArray: false,
+                    ignoreAttrs: false
+                }, function (err, json) {
+                    if (err) {
+                        reject(err)
+                    } else {
+                        const navMap = json.ncx.navMap
+                        if (navMap.navPoint && navMap.navPoint.length > 0) {
+                            navMap.navPoint = findParent(navMap.navPoint)
+                            const newNavMap = flatten(navMap.navPoint)
+                            const chapters = []
+                            newNavMap.forEach((chapter, index) => {
+                                // if (index + 1 > newNavMap.length) {
+                                //     return
+                                // }
+                                // const nav = newNavMap[index]
+                                const src = chapter.content['$'].src
+                                chapter.text = `${UPLOAD_URL}${dir}/${src}`
+                                chapter.label = chapter.navLabel.text || ''
+                                // if (nav && nav.navLabel) {
+                                //     chapter.label = nav.navLabel.text || ''
+                                // } else {
+                                //     chapter.label = ''
+                                // }
+                                // chapter.level = nav.level
+                                // chapter.pid = nav.pid
+                                chapter.navId = chapter['$'].id
+                                chapter.filename = filename
+                                chapter.order = index + 1
+                                chapters.push(chapter)
+                            })
+                            // 将目录转化为树状结构
+                            const chapterTree = []
+                            chapters.forEach(c => {
+                                c.children = []
+                                if (c.pid === '') {
+                                    chapterTree.push(c)
+                                } else {
+                                    const parent = chapters.find(_ => _.navId === c.pid)
+                                    parent.children.push(c)
+                                }
+                            }) // 将目录转化为树状结构
+                            resolve({
+                                chapters,
+                                chapterTree
+                            })
+                        } else {
+                            reject(new Error('目录解析失败,目录数为0'))
+                        }
+                    }
+                })
+            })
+        } else {
+            throw new Error('目录不存在')
+        }
+    }
+
+    static genPath(path) {
+        if (!path.startsWith('/')) {
+            path = `/{path}`
+        }
+        return `${UPLOAD_PATH}${path}`
     }
 }
 

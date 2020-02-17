@@ -90,7 +90,7 @@
             <el-col :span="12">
               <el-form-item label="文件名称:"
                             :label-width="labelWidth">
-                <el-input v-model="postForm.fileName"
+                <el-input v-model="postForm.originalname"
                           placeholder="文件名称"
                           disabled></el-input>
               </el-form-item>
@@ -132,6 +132,20 @@
 </template>
 
 <script>
+const defaultForm = {
+  title: '', // 书名
+  author: '', // 作者
+  publisher: '', // 出版社
+  language: '', // 语种
+  rootFile: '', // 根文件路径
+  cover: '', // 封面图片URL
+  coverPath: '', // 封面图片路径
+  filename: '', // 文件名
+  originalName: '', // 文件原始名称
+  filePath: '', // 文件所在路径
+  unzipPath: '', // 解压文件所在路径
+  contents: [] // 目录
+}
 import Sticky from '../../../components/Sticky/index'
 import Warning from './Warning'
 import EbookUpload from './../../../components/EbookUpload/index'
@@ -144,9 +158,12 @@ export default {
   data () {
     return {
       loading: false,
-      postForm: {},
+      postForm: {
+        ebook_uri: ''
+      },
       fileList: [],
-      labelWidth: '120px'
+      labelWidth: '120px',
+      contentsTree: [],
     }
   },
   components: {
@@ -162,13 +179,60 @@ export default {
     submitForm () {
       this.loading = true
     },
-    onUploadSuccess () {
+    setData (data) {
+      const {
+        title,
+        author,
+        publisher,
+        rootFile,
+        cover,
+        url,
+        originalname,
+        contentsTree,
+        contents,
+        filename,
+        coverPath,
+        filePath,
+        unzipPath,
+        language
+      } = data
+      this.postForm = {
+        ...this.postForm,
+        title,
+        author,
+        publisher,
+        rootFile,
+        cover,
+        url,
+        originalname,
+        contents,
+        filename,
+        coverPath,
+        filePath,
+        unzipPath,
+        language
+      }
+      this.contentsTree = contentsTree
+    },
+    onUploadSuccess (data) {
       // 上传成功
-      console.log('上传成功');
+      console.log(data)
+      this.setData(data)
 
+    },
+    onContentClick (data) {
+      const { text } = data
+      if (text) {
+        window.open(text)
+      }
+    },
+    setDefault () {
+      this.postForm = Object.assign({}, defaultForm)
+      this.contentsTree = []
     },
     onUploadRemove () {
       // 删除
+      this.setDefault()
       console.log('删除');
 
     }
@@ -179,8 +243,8 @@ export default {
 .detail-container {
   padding: 40px 50px 20px;
   .preview-img {
-    width: 270px;
-    height: 230px;
+    width: 200px;
+    height: 270px;
   }
 }
 // @import "~@/styles/mixin.scss";
