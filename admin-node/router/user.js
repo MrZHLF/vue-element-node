@@ -70,7 +70,6 @@ router.get('/info', function (req, res, next) {
         token = token.replace('Bearer ', '')
     }
     let decode = jwt.verify(token, PRIVATE_KEY)
-    console.log(decode);
 
     if (decode && decode.username) {
         findUser('admin').then(user => {

@@ -4,6 +4,10 @@ const {
     PRIVATE_KEY
 } = require('./constant')
 
+function isObject(o) {
+    return Object.prototype.toString.call(o) === '[object Object]'
+}
+
 function md5(s) {
     // 注意参数需要为 String 类型，否则会出错
     return crypto.createHash('md5')
@@ -12,7 +16,6 @@ function md5(s) {
 
 function decode(req) {
     const token = req.get('authorization')
-    console.log(token);
     if (token.indexOf('Bearer') === 0) {
         token = token.replace('Bearer ', '')
     }
@@ -21,5 +24,6 @@ function decode(req) {
 
 module.exports = {
     decode,
-    md5
+    md5,
+    isObject
 }

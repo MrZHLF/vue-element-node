@@ -22,7 +22,6 @@ class Book {
             destination,
             filename,
             path,
-            originalname,
             mimetype = MIME_TYPE_EPUB
         } = file
         const suffix = mimetype === MIME_TYPE_EPUB ? '.epub' : '' //电子书后缀名
@@ -44,7 +43,7 @@ class Book {
             fs.renameSync(oldBookPath, bookPath)
         }
 
-        this.filename = filename //文件名
+        this.fileName = filename //文件名
         this.path = `/book/${filename}${suffix}` //epub相对路径
         this.filePath = this.path //文件路径
         this.unzipPath = `/unzip/${filename}` //epub解压后的相对路径
@@ -56,12 +55,34 @@ class Book {
         this.cover = '' //封面图片
         this.coverPath = '' //封面图片路径
         this.category = -1 //分类ID
-        this.cetagoryText = '' //分类名称
+        this.cetegoryText = '' //分类名称
         this.language = '' //语言
         this.unzipUrl = unzipUrl //解压后文件链接
-        this.originalname = originalname //电子书原名
+        this.originalName = file.originalname //电子书原名
+        console.log(this.originalName)
     }
-    createBookFromData(data) {}
+    createBookFromData(data) {
+        this.fileName = data.fileName;
+        this.cover = data.coverPath;
+        this.title = data.title;
+        this.author = data.author;
+        this.publisher = data.publisher;
+        this.bookId = data.fileName;
+        this.language = data.language;
+        this.rootFile = data.rootFile;
+        this.originalName = data.originalName;
+        this.path = data.path || data.filePath;
+        this.filePath = data.path || data.filePath;
+        this.unzipPath = data.unzipPath;
+        this.coverPath = data.coverPath;
+        this.createUser = data.username;
+        this.createDt = new Date().getTime();
+        this.updateDt = new Date().getTime();
+        this.updateType = data.updateType === 0 ? data.updateType : 1;
+        this.category = data.category | 99;
+        this.cetegoryText = data.cetegoryText || '自定义';
+        this.contents = data.contents || []
+    }
 
     parse() {
         return new Promise((resolve, reject) => {
@@ -97,11 +118,11 @@ class Book {
                                 reject(err)
                             } else {
                                 const suffix = mineType.split('/')[1]
-                                const coverPath = `${UPLOAD_PATH}/img/${this.filename}.${suffix}`
-                                const coverUrl = `${UPLOAD_URL}/img/${this.filename}.${suffix}`
+                                const coverPath = `${UPLOAD_PATH}/img/${this.fileName}.${suffix}`
+                                const coverUrl = `${UPLOAD_URL}/img/${this.fileName}.${suffix}`
 
                                 fs.writeFileSync(coverPath, file, 'binary')
-                                this.coverPath = `/img/${this.filename}.${suffix}`
+                                this.coverPath = `/img/${this.fileName}.${suffix}`
                                 this.cover = coverUrl
                                 resolve(this)
                             }
@@ -116,16 +137,10 @@ class Book {
                                 this.contentsTree = chapterTree
                                 epub.getImage(cover, handleGetImage)
                             })
-
-
                         } catch (e) {
                             reject(e)
                         }
-
                         this.rootFile = epub.rootFile
-
-
-
                     }
                 }
             })
@@ -185,7 +200,8 @@ class Book {
             return new Promise((resolve, reject) => {
                 const xml = fs.readFileSync(ncxFilePath, 'utf-8')
                 const dir = path.dirname(ncxFilePath).replace(UPLOAD_PATH, '')
-                const filename = this.filename
+                const fileName = this.fileName
+                const unzipPath = this.unzipPath
                 xml2js(xml, {
                     explicitArray: false,
                     ignoreAttrs: false
@@ -204,6 +220,8 @@ class Book {
                                 // }
                                 // const nav = newNavMap[index]
                                 const src = chapter.content['$'].src
+                                chapter.id = `${src}`
+                                chapter.href = `${dir}/${src}`.replace(unzipPath, '')
                                 chapter.text = `${UPLOAD_URL}${dir}/${src}`
                                 chapter.label = chapter.navLabel.text || ''
                                 // if (nav && nav.navLabel) {
@@ -214,7 +232,7 @@ class Book {
                                 // chapter.level = nav.level
                                 // chapter.pid = nav.pid
                                 chapter.navId = chapter['$'].id
-                                chapter.filename = filename
+                                chapter.fileName = fileName
                                 chapter.order = index + 1
                                 chapters.push(chapter)
                             })
@@ -243,12 +261,59 @@ class Book {
             throw new Error('目录不存在')
         }
     }
+    toDb() {
+        return {
+            fileName: this.fileName,
+            cover: this.cover,
+            title: this.title,
+            author: this.author,
+            publisher: this.publisher,
+            bookId: this.bookId,
+            updateType: this.updateType,
+            language: this.language,
+            rootFile: this.rootFile,
+            originalName: this.originalName,
+            filePath: this.path,
+            unzipPath: this.unzipPath,
+            coverPath: this.coverPath,
+            createUser: this.createUser,
+            createDt: this.createDt,
+            updateDt: this.updateDt,
+            category: this.category || 99,
+            categoryText: this.categoryText || '自定义'
+        }
+    }
+    getContents() {
+        return this.contents
+    }
+    reset() {
+        if (Book.pathExists(this.filePath)) {
+            fs.unlinkSync(Book.genPath(this.filePath))
+        }
+        if (Book.pathExists(this.coverPath)) {
+            fs.unlinkSync(Book.genPath(this.coverPath))
+        }
+        if (Book.pathExists(this.unzipPath)) {
+            fs.rmdirSync(Book.genPath(this.unzipPath), {
+                recursive: true
+            })
+        }
+
+    }
 
     static genPath(path) {
         if (!path.startsWith('/')) {
             path = `/{path}`
         }
         return `${UPLOAD_PATH}${path}`
+    }
+
+    static pathExists(path) {
+        if (path.startsWith(UPLOAD_PATH)) {
+            return fs.existsSync(path)
+        } else {
+            return fs.existsSync(Book.genPath(path))
+        }
     }
 }
 
