@@ -1,7 +1,8 @@
 const {
     MIME_TYPE_EPUB,
     UPLOAD_URL,
-    UPLOAD_PATH
+    UPLOAD_PATH,
+    OLD_UPLOAD_URL
 } = require('../utils/constant')
 const fs = require('fs')
 
@@ -237,16 +238,17 @@ class Book {
                                 chapters.push(chapter)
                             })
                             // 将目录转化为树状结构
-                            const chapterTree = []
-                            chapters.forEach(c => {
-                                c.children = []
-                                if (c.pid === '') {
-                                    chapterTree.push(c)
-                                } else {
-                                    const parent = chapters.find(_ => _.navId === c.pid)
-                                    parent.children.push(c)
-                                }
-                            }) // 将目录转化为树状结构
+                            const chapterTree = Book.genContentsTree(chapters)
+                            // const chapterTree = []
+                            // chapters.forEach(c => {
+                            //     c.children = []
+                            //     if (c.pid === '') {
+                            //         chapterTree.push(c)
+                            //     } else {
+                            //         const parent = chapters.find(_ => _.navId === c.pid)
+                            //         parent.children.push(c)
+                            //     }
+                            // }) // 将目录转化为树状结构
                             resolve({
                                 chapters,
                                 chapterTree
@@ -313,6 +315,49 @@ class Book {
             return fs.existsSync(path)
         } else {
             return fs.existsSync(Book.genPath(path))
+        }
+    }
+    static genCoverUrl(book) {
+        if (Number(book.updateType) === 0) {
+            const {
+                cover
+            } = book
+            if (cover) {
+                if (cover.startsWith('/')) {
+                    return `${OLD_UPLOAD_URL}${cover}`
+                } else {
+                    return `${OLD_UPLOAD_URL}/${cover}`
+                }
+            } else {
+                return null
+            }
+        } else {
+            if (book.cover) {
+                if (book.cover.startsWith('/')) {
+                    return `${UPLOAD_URL}${book.cover}`
+                } else {
+                    return `${UPLOAD_URL}/${book.cover}`
+                }
+            } else {
+                return null
+            }
+        }
+    }
+
+    static genContentsTree(contents) {
+        if (contents) {
+            // 将目录转化为树状结构
+            const contentsTree = []
+            contents.forEach(c => {
+                c.children = []
+                if (c.pid === '') {
+                    contentsTree.push(c)
+                } else {
+                    const parent = contents.find(_ => _.navId === c.pid)
+                    parent.children.push(c)
+                }
+            }) // 将目录转化为树状结构
+            return contentsTree
         }
     }
 }

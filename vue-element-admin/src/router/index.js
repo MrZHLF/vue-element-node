@@ -103,7 +103,7 @@ export const asyncRoutes = [{
         }
       },
       {
-        path: '/book/edit',
+        path: '/book/edit/:fileName',
         name: "bookEdit",
         hidden: true,
         component: () => import('@/views/book/edit'),
