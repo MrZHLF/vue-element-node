@@ -256,7 +256,7 @@ export default {
     },
     onUploadSuccess (data) {
       // 上传成功
-      console.log(data);
+      console.log('onUploadSuccess', data);
       this.setData(data);
     },
     onContentClick (data) {

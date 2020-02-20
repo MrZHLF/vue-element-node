@@ -1,6 +1,9 @@
 const Book = require('../models/Book')
 const db = require('../db')
 const _ = require('lodash')
+const {
+    debug
+} = require('../utils/constant.js')
 
 function exists(book) {
     const {
@@ -119,8 +122,62 @@ function getBook(fileName) {
     })
 }
 
+
+// 查询分类
+async function getCategory() {
+    const sql = 'select * from category order by category asc'
+    const result = await db.querySql(sql)
+    const categoryList = []
+    result.forEach(item => {
+        categoryList.push({
+            label: item.categoryText,
+            value: item.category,
+            num: item.num
+        })
+    })
+    return categoryList
+}
+
+
+// 获取图书列表
+async function listBook(query) {
+    debug && console.log(query, 'query');
+    const {
+        category,
+        author,
+        title,
+        sort,
+        page = 1,
+        pageSize = 20,
+    } = query
+    const offset = (page - 1) * pageSize
+    let bookSql = `select * from book`
+    let where = 'where'
+    title && (where = db.andLike(where, 'title', title))
+    author && (where = db.andLike(where, 'author', author))
+    category && (where = db.and(where, 'category', category))
+    if (where !== 'where') {
+        bookSql = `${bookSql} ${where}`
+    }
+
+    if (sort) {
+        const symbol = sort[0]
+        const column = sort.slice(1, sort.length)
+        const order = symbol === '+' ? 'asc' : 'desc'
+        bookSql = `${bookSql} order by ${column} ${order}`
+    }
+
+    bookSql = `${bookSql} limit ${pageSize} offset ${offset}` //分页
+    const list = await db.querySql(bookSql)
+    return {
+        list
+    }
+}
+
 module.exports = {
     insertBook,
     getBook,
-    updateBook
+    updateBook,
+    getCategory,
+    listBook
 }

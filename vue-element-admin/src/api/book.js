@@ -28,3 +28,19 @@ export function updateBook(book) {
     data: book
   })
 }
+
+
+export function listBook(params) {
+  return require({
+    url: '/book/list',
+    method: 'get',
+    params
+  })
+}
+
+export function getCategory() {
+  return require({
+    url: '/book/category',
+    method: 'get'
+  })
+}
