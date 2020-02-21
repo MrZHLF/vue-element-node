@@ -101,24 +101,56 @@ router.get('/get', function (req, res, next) {
 })
 
 // 获取分类
+// router.get('/category', function (req, res, next) {
+//     bookService.getCategory().then(category => {
+//         new Result(category, '获取分类成功').success(res)
+//     }).catch(err => {
+//         next(boom.badImplementation(err))
+//     })
+// })
 router.get('/category', function (req, res, next) {
     bookService.getCategory().then(category => {
-        new Result(category, '获取分类成功').success(res)
+        new Result(category).success(res)
     }).catch(err => {
         next(boom.badImplementation(err))
     })
 })
-
 
 // 获取图书列表
 router.get('/list', function (req, res, next) {
-    bookService.listBook(req.query).then((list) => {
-        new Result(
-            list, '获取图书列表成功').success(res)
+    bookService.listBook(req.query).then(({
+        list,
+        page,
+        pageSize,
+        count
+    }) => {
+        new Result({
+            list,
+            page: +page,
+            pageSize: +pageSize,
+            count
+        }, '获取图书列表成功').success(res)
     }).catch(err => {
         next(boom.badImplementation(err))
     })
 })
 
+// 删除图书
+router.get('/delete', function (req, res, next) {
+    const {
+        fileName
+    } = req.query
+    if (!fileName) {
+        next(boom.badRequest(new Error('参数fileName不能为空')))
+    } else {
+        bookService.deleteBook(fileName)
+            .then(() => {
+                new Result(null, '删除成功').success(res)
+            })
+            .catch(err => {
+                next(boom.badImplementation(err))
+            })
+    }
+})
 
 module.exports = router

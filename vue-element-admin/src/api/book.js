@@ -44,3 +44,13 @@ export function getCategory() {
     method: 'get'
   })
 }
+
+export function deleteBook(fileName) {
+  return require({
+    url: '/book/delete',
+    method: 'get',
+    params: {
+      fileName
+    }
+  })
+}
